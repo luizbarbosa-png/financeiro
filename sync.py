@@ -15,7 +15,7 @@ GOOGLE_CREDS = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 DIAS = int(os.environ.get("DIAS", "60"))  # quantos dias para trás buscar
 
 HEADER = ["id", "data", "banco", "conta", "descricao", "categoria",
-          "tipo", "valor", "mes", "entrada", "saida"]
+          "tipo", "valor", "mes", "entrada", "saida", "pagador"]
 
 
 def pluggy_headers():
@@ -62,6 +62,8 @@ def buscar_transacoes(headers):
                         t.get("type", ""), valor, "'" + dia[:7],
                         valor if valor > 0 else 0,
                         -valor if valor < 0 else 0,
+                        safe(((t.get("paymentData") or {}).get("payer") or {})
+                             .get("name")),
                     ])
                 proximo = dados.get("next")
                 if not proximo:
@@ -77,6 +79,12 @@ def preparar_planilha(sh):
         ws.append_row(HEADER)
     else:
         ws = sh.worksheet("Transacoes")
+        if len(ws.row_values(1)) < len(HEADER):
+            # migração única: adiciona a coluna "pagador" e recarrega o histórico
+            if ws.col_count < len(HEADER):
+                ws.add_cols(len(HEADER) - ws.col_count)
+            ws.update(range_name="A1", values=[HEADER])
+            ws.batch_clear(["A2:L"])
     if "Resumo" not in nomes:
         r = sh.add_worksheet("Resumo", rows=200, cols=12)
         T = "Transacoes!"
