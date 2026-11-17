@@ -47,11 +47,10 @@ def buscar_transacoes(headers):
         banco = (item.get("connector") or {}).get("name", "Banco")
         contas = get("/accounts", headers, itemId=item_id)["results"]
         for conta in contas:
-            page = 1
+            dados = get("/v2/transactions", headers, accountId=conta["id"],
+                        dateFrom=inicio + "T00:00:00.000Z",
+                        dateTo=fim + "T23:59:59.999Z")
             while True:
-                dados = get("/transactions", headers, accountId=conta["id"],
-                            **{"from": inicio, "to": fim,
-                               "pageSize": 500, "page": page})
                 for t in dados["results"]:
                     dia = t["date"][:10]
                     valor = abs(float(t["amount"]))
@@ -64,9 +63,10 @@ def buscar_transacoes(headers):
                         valor if valor > 0 else 0,
                         -valor if valor < 0 else 0,
                     ])
-                if page >= dados.get("totalPages", 1):
+                proximo = dados.get("next")
+                if not proximo:
                     break
-                page += 1
+                dados = get(f"/v2/transactions{proximo}", headers)
     return linhas
 
 
