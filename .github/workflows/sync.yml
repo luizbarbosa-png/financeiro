@@ -1,0 +1,23 @@
+name: sync-financeiro
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # a cada 10 minutos
+  workflow_dispatch:          # permite rodar manualmente pelo botão "Run workflow"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python sync.py
+        env:
+          PLUGGY_CLIENT_ID: ${{ secrets.PLUGGY_CLIENT_ID }}
+          PLUGGY_CLIENT_SECRET: ${{ secrets.PLUGGY_CLIENT_SECRET }}
+          PLUGGY_ITEM_IDS: ${{ secrets.PLUGGY_ITEM_IDS }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
